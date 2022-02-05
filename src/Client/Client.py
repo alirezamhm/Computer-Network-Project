@@ -1,5 +1,8 @@
 import socket
 import threading
+import json
+from typing import Dict
+import time
 
 HOST = 'localhost'
 SERVER_PORTS = {'choghondar': 6969,
@@ -12,39 +15,59 @@ client = None
 state = ''
 
 
-def read_choghondar(client, message):  # action based on message
-    global state
-    if 'Menu' in message or message=='Incorrect username or password.':
-        state = 'menu'
-    elif message in ['Please enter your username.', 'This username is already existed or invalid. Please enter another one.']:
-        state = 'username'
-    elif message == 'Please enter your password.':
-        state = 'password'
-    elif 'Inbox' in message or message=='Username  not found':
-        state = 'inbox'
-    elif "Chatbox" in message:
-        state = 'chatbox'
+# def read_choghondar(command: Dict):  # action based on message
+#     global state
+    # if 'Menu' in message or message=='Incorrect username or password.':
+    #     state = 'menu'
+    # elif message in ['Please enter your username.', 'This username is already existed or invalid. Please enter another one.']:
+    #     state = 'username'
+    # elif message == 'Please enter your password.':
+    #     state = 'password'
+    # elif 'Inbox' in message or message=='Username  not found':
+    #     state = 'inbox'
+    # elif "Chatbox" in message:
+    #     state = 'chatbox'
+    # state = command['state']
+    
+def print_chatbox(chatbox):
+    username = chatbox['username']
+    for message in chatbox['messages']:
+        if message['source'] != username:
+            print(f"({message['source']})", end='')
+        print(message['content'])
     
 
-
-def read(server):
-    global message, connected
+def read_server(server):
+    global message, connected, state
     try:
         while True:
-            message = client.recv(1024).decode('ascii').strip()
-            print(f'{message}')
+            command = read(client)
+            time.sleep(1)
+            state = command['state']
+            message = command['message']
+            if state == 'chatbox':
+                print_chatbox(message)
+            if message:
+                print(f"{message}")
             if message == 'exit':
                 connected = False
-            if server == 'choghondar':
-                read_choghondar(client, message)
+            # if server == 'choghondar':
+            #     read_choghondar(command)
+            # time.sleep(1)
 
     except ConnectionError as e:
         print(e)
         client.close()
 
+def read(client: socket.socket) -> Dict:
+    try:
+        return json.loads(client.recv(1024).decode('ascii'))
+    except ConnectionError or ConnectionResetError:
+        client.close()
 
-def send(message: str):
-    client.send(message.encode('ascii'))
+def send(message: str, state: str=''):
+    msg = json.dumps({'message': message, 'state': state}) # TODO: remove state?
+    client.send(msg.encode('ascii'))
 
 
 def handle_choghondar():
@@ -55,9 +78,10 @@ def handle_choghondar():
                 command = input("Enter command:\n")
                 if command not in ['1', '2', '3']:
                     print('invalid command')
+                    continue
                 send(command)
                 state = 'submit'
-            elif state in ['username', 'password', 'inbox']:
+            elif any(x in state for x in['username', 'password', 'inbox']):
                 send(input())
                 state = 'submit'
             elif state == 'chatbox':
@@ -83,8 +107,8 @@ def connect_to_server(server_name):
     client = socket.socket()
     client.connect((HOST, SERVER_PORTS[server_name]))
     connected = True
-    threading.Thread(target=handle, args=(server_name), daemon=True).start()
-    threading.Thread(target=read, args=(server_name), daemon=True).start()
+    threading.Thread(target=handle, args=(server_name,), daemon=True).start()
+    threading.Thread(target=read_server, args=(server_name,), daemon=True).start()
 
     while connected: 
         pass
@@ -92,9 +116,7 @@ def connect_to_server(server_name):
 
 command = ''
 while not command:
-    command = input('''1. Connect to external servers
-                2. Login as admin
-                3. Exit\n''')
+    command = input('1. Connect to external servers\n2. Login as admin\n3. Exit\n')
     if command == '1':
         command = input("Enter server name\n")
         connect_to_server(command)

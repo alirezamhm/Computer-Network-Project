@@ -35,8 +35,7 @@ class Chatbox():
     def update_online(self, username, in_out):
         self.onlines[username] = in_out
         
-    def send_message(self, source, dest, message):
-        msg = Message(source, dest, message)
+    def send_message(self, dest, msg):
         self.messages.append(msg)
         self.has_updated()
         self.not_seens[dest] += 1

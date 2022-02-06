@@ -1,16 +1,11 @@
 import socket
 import threading
-import time
-import random
-import sys
 import json
 from typing import Dict
 
-from matplotlib.style import use
-from urllib3 import Retry
+from Message import Message
 from User import User
 from Chatbox import Chatbox
-from Message import Message
 
 HOST = 'localhost'
 PORT = 6969
@@ -21,15 +16,10 @@ server.bind((HOST, PORT))
 server.listen()
 
 users: Dict[str, User] = {} # username: user
-clients = {} # port: client socket
+# clients = {} # port: client socket
 
-
-# def handle_client(port):
-#     client = clients[port]
-#     send_menu(client)
     
-def handle_client(port):
-    client = clients[port]
+def handle_client(client):
     state = 'menu'
     send(client, MENU_STRING, state)
     username = ''
@@ -47,7 +37,7 @@ def handle_client(port):
                 state = 'login - username'
                 send(client, "Please enter your username.", state)
             elif message == '3':
-                clients.pop(port)
+                send(client, 'exit', '')
                 break
             
         elif state == 'sign up - username':
@@ -110,7 +100,8 @@ def send_chat(username, othername, message):
     user = users[username]
     other = users[othername]
     chatbox = user.chats[othername]
-    chatbox.send_message(username, othername, message)
+    msg = Message(username, othername, message)
+    chatbox.send_message(othername, msg)
     if chatbox.onlines[othername]:
         send(other.client, {'username': othername, 'messages': [msg.to_dict()]}, "chatbox")
   
@@ -137,8 +128,7 @@ def get_inbox(username) -> str:
 def read(client: socket.socket) -> dict:
     try:
         return json.loads(client.recv(1024).decode('ascii'))
-    except ConnectionError or ConnectionResetError or OSError:
-        print('Connection Error')
+    except (ConnectionError, ConnectionResetError, OSError) as e:
         client.close()
 
 
@@ -148,9 +138,5 @@ def send(client: socket.socket, message, state: str =''):
     
 while True:
     client, address = server.accept()
-    port = address[1]
-    clients[port] = client
-    # threading.Thread(target=handle_client, args=(port,), daemon=True).start()
-    threading.Thread(target=handle_client, args=(port,), daemon=True).start()
+    threading.Thread(target=handle_client, args=(client,), daemon=True).start()
 
-    

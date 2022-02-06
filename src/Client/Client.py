@@ -167,12 +167,6 @@ def handle_firewall():
                 invalid_ports = set()
             else:
                 invalid_ports = set(map(int, port_list[1:]))
-        # elif re.fullmatch(r"(\d+?\s?)*", message.strip()):
-        #     print("debug", message)
-        #     invalid_ports = set(map(int, message.split()))
-        #     print(invalid_ports)
-        
-        
 
 client_firewall = socket.socket()
 client_firewall.connect((HOST, SERVER_PORTS['firewall']))

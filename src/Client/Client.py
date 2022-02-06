@@ -99,7 +99,6 @@ def handle_choghondar():
                     state = 'submit'
 
     except ConnectionError as e:
-        print(e)
         client.close()
 
 
@@ -110,10 +109,15 @@ def handle(server_name):
 
 def connect_to_server(server_name):
     global connected, client, port
+    if 'via' in server_name:
+        server_name, port = server_name.split(' via ')
+        port = int(port)
+    else:  
+        port = SERVER_PORTS[server_name]
     if server_name not in SERVER_PORTS:
         print('invalid server')
+        port = 0
         return
-    port = SERVER_PORTS[server_name]
     if port in invalid_ports:
         print('packet dropped due to firewall rules')
         port = 0
@@ -121,6 +125,8 @@ def connect_to_server(server_name):
     client = socket.socket()
     client.connect((HOST, port))
     connected = True
+    if port in SERVER_PORTS['proxy']:
+        send_string(client, server_name)
     threading.Thread(target=handle, args=(server_name,), daemon=True).start()
     threading.Thread(target=read_server, args=(server_name,), daemon=True).start()
 

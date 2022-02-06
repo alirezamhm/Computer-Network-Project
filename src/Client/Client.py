@@ -33,7 +33,7 @@ def print_chatbox(chatbox):
     username = chatbox['username']
     for message in chatbox['messages']:
         if message['source'] != username:
-            print(f"({message['source']})", end='')
+            print(f"({message['source']}) ", end='')
         print(message['content'])
     
 
@@ -47,7 +47,7 @@ def read_server(server):
             message = command['message']
             if state == 'chatbox':
                 print_chatbox(message)
-            if message:
+            elif message:
                 print(f"{message}")
             if message == 'exit':
                 connected = False
@@ -65,17 +65,17 @@ def read(client: socket.socket) -> Dict:
     except ConnectionError or ConnectionResetError:
         client.close()
 
-def send(message: str, state: str=''):
-    msg = json.dumps({'message': message, 'state': state}) # TODO: remove state?
+def send(message: str, **kwargs):
+    msg = json.dumps({'message': message, **kwargs}) 
     client.send(msg.encode('ascii'))
 
 
 def handle_choghondar():
     global state
     try:
-        while True:
+        while connected:
             if state == 'menu':
-                command = input("Enter command:\n")
+                command = input()
                 if command not in ['1', '2', '3']:
                     print('invalid command')
                     continue
@@ -89,6 +89,7 @@ def handle_choghondar():
                 send(command)
                 if command == '/exit':
                     state = 'submit'
+
     except ConnectionError as e:
         print(e)
         client.close()
@@ -100,6 +101,7 @@ def handle(server_name):
 
 
 def connect_to_server(server_name):
+    global connected
     if server_name not in SERVER_PORTS:
         print('invalid server')
         return
@@ -115,7 +117,7 @@ def connect_to_server(server_name):
 
 
 command = ''
-while not command:
+while True:
     command = input('1. Connect to external servers\n2. Login as admin\n3. Exit\n')
     if command == '1':
         command = input("Enter server name\n")
@@ -126,4 +128,3 @@ while not command:
         break
     else:
         print('invalid command')
-        command = ''

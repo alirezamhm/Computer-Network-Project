@@ -29,26 +29,30 @@ def handle_client(client: socket.socket):
     global invalid_ports
     update_clients()
     while True:
-        message = read(client)
-        if message == 'login':
-            send(client, 'Enter admin passowrd')
-            password = read(client)
-            if password == admin_password:
-                send(client, 'logged in')
-            else:
-                send(client, 'wrong password')
-        elif message == 'activate whitelist firewall':
-            invalid_ports = set()
-            update_clients()
-        elif message == 'activate blacklist firewall':
-            invalid_all_ports()
-            update_clients()
-        elif 'open port' in message:
-            open_port(int(message.split()[-1]))
-            update_clients()
-        elif 'close port' in message:
-            close_port(int(message.split()[-1]))
-            update_clients()
+        try:
+            message = read(client)
+            if message == 'login':
+                send(client, 'Enter admin passowrd')
+                password = read(client)
+                if password == admin_password:
+                    send(client, 'logged in')
+                else:
+                    send(client, 'wrong password')
+            elif message == 'activate whitelist firewall':
+                invalid_ports = set()
+                update_clients()
+            elif message == 'activate blacklist firewall':
+                invalid_all_ports()
+                update_clients()
+            elif 'open port' in message:
+                open_port(int(message.split()[-1]))
+                update_clients()
+            elif 'close port' in message:
+                close_port(int(message.split()[-1]))
+                update_clients()
+        except (ConnectionError, ConnectionResetError) as e:
+            break
+        
 
 def update_clients():
     send_to_all('invalids '+' '.join(map(str, invalid_ports)))

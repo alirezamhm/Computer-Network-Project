@@ -111,61 +111,34 @@ def handle_choghondar():
         
         
 def read_shalgham():
-    global message, connected, state
+    global message, connected, state, port
     state = 'memu'
     try:
         menu = client.recvfrom(BUFF_SIZE)[0].decode('ascii')
         print(menu)
         client.sendto(input().encode('ascii'), (HOST, port))
         while True:
+            
             packet, _ = client.recvfrom(BUFF_SIZE)
             data = base64.b64decode(packet, ' /')
             np_data = np.fromstring(data, dtype=np.uint8)
             frame = cv2.imdecode(np_data, 1)
-            # frame = cv2.putText(frame, 'FPS: ' + str(fps), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
             cv2.imshow("RECEIVING VIDEO", frame)
             key = cv2.waitKey(1) & 0xFF
-            if key == ord('q'):
+            if key == ord('q') or port in invalid_ports:
+                if port in invalid_ports:
+                    print('packet dropped due to firewall rules')
+                client.sendto('q'.encode('ascii'), (HOST, port))
+                cv2.destroyAllWindows()
+                # Send something?
+                port = 0
                 connected = False
                 client.close()
                 break
-            # if cnt == frames_to_count:
-                # try:
-                    # fps = round(frames_to_count / (time.time() - st))
-                    # st = time.time()
-                    # cnt = 0
-                # except:
-                    # pass
-            # cnt += 1
-        
-        # while connected:
-        #     if state != "stream": # TODO: ?
-        #         command = read_json(client)
-        #     message = read_string(client)
-        #     time.sleep(1)
-        #     if message:
-        #         print(f"{message}")
-        #     # if message == 'exit':
-        #     #     connected = False
     except (ConnectionError, TypeError) as e:
         client.close()
         
-
-# def handle_shalgham():
-#     global state
-#     try:
-#         while connected:
-#             if state == 'menu':
-#                 print('kiri')
-#                 client.sendto(input().encode('ascii'), (HOST, port))
-#                 state = 'submit'
-#             # elif state == 'stream':
-#             #     command = input()
-#             #     if command == 'q':
-                    
-#     except ConnectionError as e:
-#         client.close()
-
+        
 def handle(server_name):
     if server_name == 'choghondar':
         handle_choghondar()
@@ -195,14 +168,15 @@ def connect_to_server(server_name):
         if port in SERVER_PORTS['proxy']:
             # send_string(client, server_name)
             pass
+        read_shalgham()
     else: 
         client = socket.socket()
         client.connect((HOST, port))
         if port in SERVER_PORTS['proxy']:
             send_string(client, server_name)
-    connected = True
-    threading.Thread(target=handle, args=(server_name,), daemon=True).start()
-    threading.Thread(target=read_server, args=(server_name,), daemon=True).start()
+        connected = True
+        threading.Thread(target=handle, args=(server_name,), daemon=True).start()
+        threading.Thread(target=read_server, args=(server_name,), daemon=True).start()
 
     while connected:
         pass

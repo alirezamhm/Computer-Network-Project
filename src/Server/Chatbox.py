@@ -1,5 +1,3 @@
-from matplotlib.style import use
-from Message import Message
 from datetime import datetime
 
 class Chatbox():

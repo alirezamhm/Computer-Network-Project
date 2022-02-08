@@ -16,7 +16,6 @@ server.bind((HOST, PORT))
 server.listen()
 
 users: Dict[str, User] = {} # username: user
-# clients = {} # port: client socket
 
     
 def handle_client(client):

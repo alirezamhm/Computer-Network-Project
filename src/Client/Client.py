@@ -1,4 +1,3 @@
-from concurrent.futures import thread
 import re
 import socket
 import threading
@@ -7,7 +6,6 @@ from typing import Dict
 import time
 import base64
 import cv2
-import imutils
 import numpy as np
 import socket
 
@@ -130,7 +128,6 @@ def read_shalgham():
                     print('packet dropped due to firewall rules')
                 client.sendto('q'.encode('ascii'), (HOST, port))
                 cv2.destroyAllWindows()
-                # Send something?
                 port = 0
                 connected = False
                 client.close()
@@ -142,8 +139,7 @@ def read_shalgham():
 def handle(server_name):
     if server_name == 'choghondar':
         handle_choghondar()
-    # elif server_name == 'shalgham':
-    #     handle_shalgham()
+
 
 
 def connect_to_server(server_name):
@@ -164,10 +160,10 @@ def connect_to_server(server_name):
     if server_name == 'shalgham':
         client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         client.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, BUFF_SIZE)
+        # if port in SERVER_PORTS['proxy']:
+        #     client.sendto(server_name.encode('ascii'), (HOST, port)) 
         client.sendto("hi".encode('ascii'), (HOST, port)) 
-        if port in SERVER_PORTS['proxy']:
-            # send_string(client, server_name)
-            pass
+        
         read_shalgham()
     else: 
         client = socket.socket()
